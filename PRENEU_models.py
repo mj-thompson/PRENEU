@@ -2,7 +2,7 @@ import sys
 from sklearn import metrics
 import gc
 import tensorflow as tf
-tf.config.experimental.set_visible_devices([], 'GPU')
+# tf.config.experimental.set_visible_devices([], 'GPU')
 from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras import Input
@@ -41,6 +41,7 @@ from math import floor
 # CNN with dilated and residual connections
 # CNN with dilated connections/residual solo?
 
+# Code thanks to interpretable splicing model from Oded Regev lab
 from sklearn import metrics
 def binary_KL(y_true, y_pred):
     # return K.mean(K.binary_crossentropy(y_pred, y_true)-K.binary_crossentropy(y_true, y_true), axis=-1)   # this is for the Ubuntu machine in Courant
@@ -258,7 +259,7 @@ class MultiHeadAttention_wpos(keras.layers.Layer):
 # Positional encoding functions for Multi-Head Attention
 #------------------------------------------------------------------------------------------
 
-
+## Code thanks to tfomics and papers from Chandana Rajesh and Peter Koo's github.
 def f_exponential(positions, feature_size, seq_length=None, min_half_life=3.0):
     if seq_length is None:
         seq_length = tf.cast(tf.reduce_max(tf.abs(positions)) + 1, dtype=tf.float32)
@@ -569,39 +570,6 @@ def dilated_residual_block(x, filters, kernel_size, dilation_rate, dropout_rate=
     return layers.Activation("relu")(x)
 
 
-# ----------------------------
-# Build the Transformer model.
-# ----------------------------
-def build_dil_conv(seq_len=498, input_dim=4,
-    dense_number=128,
-    lstm_feats=64,
-    num_blocks=5,
-    num_filters=60,
-    filter_width=7,
-                   dropout_rate=0.1,
-                   initial_filters=100,
-    regularization=1e-3,
-    l2_regularization=1e-4):
-    kernel_size=filter_width
-    inputs = layers.Input(shape=(seq_len, input_dim), name="input_sequence")
-    x = inputs
-    
-    for i in range(num_blocks):
-        dilation_rate = 3 ** i  # 1, 2, 4, 8, ...
-        x = dilated_residual_block(x, filters=floor(initial_filters/(i+1)), kernel_size=kernel_size,
-                                   dilation_rate=dilation_rate, dropout_rate=dropout_rate)
-    x = Flatten()(x)
-    dense=Dense(dense_number,kernel_regularizer=keras.regularizers.L1L2(l2_regularization,l2_regularization),
-               name="Dense_mha")(x)
-    dense=BatchNormalization(name="BN")(dense)
-    dense=Activation("relu",name="dense_activation")(dense)
-    dense=Dropout(dropout_rate,name="dense_dropout")(dense)
-    out=Dense(1,activation="linear",name="output_activation")(dense)
-    # create model
-    model = Model(inputs=inputs, outputs=out)
-    
-    model.compile(optimizer="adam", loss="mse")
-    return model
 
 
 
@@ -633,37 +601,6 @@ def dilated_block_no_resid(x, filters, kernel_size, dilation_rate, dropout_rate=
     
     return layers.Activation("relu")(x)
 
-
-def build_dil_conv_noresid(seq_len=498, input_dim=4,
-    dense_number=128,
-    lstm_feats=64,
-    num_blocks=5,
-    num_filters=60,
-    filter_width=7,
-                   dropout_rate=0.1,
-                   initial_filters=100,
-    regularization=1e-3,
-    l2_regularization=1e-4):
-    kernel_size=filter_width
-    inputs = layers.Input(shape=(seq_len, input_dim), name="input_sequence")
-    x = inputs
-    
-    for i in range(num_blocks):
-        dilation_rate = 3 ** i  # 1, 2, 4, 8, ...
-        x = dilated_block_no_resid(x, filters=floor(initial_filters/(i+1)), kernel_size=kernel_size,
-                                   dilation_rate=dilation_rate, dropout_rate=dropout_rate)
-    x = Flatten()(x)
-    dense=Dense(dense_number,kernel_regularizer=keras.regularizers.L1L2(l2_regularization,l2_regularization),
-               name="Dense_mha")(x)
-    dense=BatchNormalization(name="BN")(dense)
-    dense=Activation("relu",name="dense_activation")(dense)
-    dense=Dropout(dropout_rate,name="dense_dropout")(dense)
-    out=Dense(1,activation="linear",name="output_activation")(dense)
-    # create model
-    model = Model(inputs=inputs, outputs=out)
-    
-    model.compile(optimizer="adam", loss="mse")
-    return model
 
 def get_conv_baseline(
     input_length=200,    
@@ -724,7 +661,7 @@ def get_conv_baseline(
     
     return model
 
-def build_dil_conv_f(seq_len=498, input_dim=4,
+def build_dil_conv(seq_len=498, input_dim=4,
     dense_number=128,
     lstm_feats=64,
     num_blocks=5,
@@ -771,7 +708,7 @@ def build_dil_conv_f(seq_len=498, input_dim=4,
     model.compile(optimizer="adam", loss="mse")
     return model
 
-def build_dil_conv_noresid_f(seq_len=498, input_dim=4,
+def build_dil_conv_noresid(seq_len=498, input_dim=4,
     dense_number=128,
     lstm_feats=64,
     num_blocks=5,
@@ -878,14 +815,6 @@ def get_model(modtype="can",inputshape=200,
                     dense_number=dense_number,num_filters=num_filters,
                     filter_width=filter_width,
                      outact="linear",lstm_feats=24)
-    elif modtype=="dilcnn_resid":
-        model=build_dil_conv(seq_len=inputshape,
-                dense_number=dense_number/4,num_filters=num_filters,
-                filter_width=filter_width)
-    elif modtype=="dilcnn_noresid":
-        model=build_dil_conv_noresid(seq_len=inputshape,
-                dense_number=dense_number/4,num_filters=num_filters,
-                filter_width=filter_width)
     elif modtype=="dilcnn_resid_f":
         model=build_dil_conv_f(seq_len=inputshape,
                 dense_number=dense_number/4,num_filters=num_filters,
