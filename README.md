@@ -8,7 +8,7 @@ There are a number of parameters to explore using PRENEU, these can make the rel
 
 * `N` &mdash; the number of sequences to generate (sample size)
 * `seqlen` &mdash; the length of the sequences. Set to 200 in the paper.
-* `h^2` &mdash; the amount of variability explained by the _sequence_, must be within [0,1]. In the absence of sequence-based effects, this is the motif explainability (i.e. heritability in statistical genetics). Set to 0.80 in the paper.
+* `h2` &mdash; the amount of variability explained by the _sequence_, must be within [0,1]. In the absence of sequence-based effects, this is the motif explainability (i.e. heritability in statistical genetics). Set to 0.80 in the paper.
 * `alpha` &mdash; Proportion of the motif explainability that is due to simple additive effects. 1 is purely additive, 0 is purely interaction effects
 * `interactgap` &mdash; the maximum number of nucleotides between the two motifs responsible for the distance-based interaction effect. Set to 3 in the paper.
 * `pi` &mdash; sparsity parameter for motif additive effects. Set to 0.6 in paper (6 of 10 motifs will have additive effects)
